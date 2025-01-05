@@ -18,6 +18,11 @@ def readdata():
         data = json.load(infile)
     return data
 
+def getitems():
+    with open("items.json", "r") as file:
+        items = json.load(file)
+    return items
+
 def writedata(data):
     with open("data.json", "w") as outfile:
         json.dump(data, outfile, indent=3)
@@ -103,7 +108,7 @@ async def beg(interaction: discord.Interaction):
     writedata(data)
     await interaction.response.send_message(f"You got {amount}<:doubloon:1323064445370368182>!", ephemeral=True)
 
-@beg.error
+@beg .error
 async def begerror(interaction: discord.Interaction, error: app_commands.AppCommandError):
     if isinstance(error, app_commands.CommandOnCooldown):
         await interaction.response.send_message(str(error), ephemeral=True)
@@ -152,7 +157,152 @@ async def guess(interaction: discord.Interaction, number: int, amount: float):
     writedata(data)
     await interaction.response.send_message(f"You lost! Correct number was {correctnum}!", ephemeral=True)
     
-          
+@bot.tree.command(name="plunder", description="Plunder another pirates doubloons!")
+async def plunder(interaction: discord.Interaction, user: discord.User):    
+    uid = str(interaction.user.id)
+    victimid = str(user.id)          
+    success = random.randint(1,100)
+    data = readdata()
+    if "AntiPlunder" in data[victimid]["effects"]:
+        loss = data[uid]["doubloons"] * (random.randint(1,15) / 100)
+        data[uid]["doubloons"] -= loss
+        writedata(data)
+
+        return await interaction.response.send_message(f"Blimeys! <@{victimid}> had AntiPlunder™ active and you lost {loss} doubloons!")
+    
+    if success in range(1,15):
+        data[victimid]["doubloos"] -= data[victimid]["doubloons"] * (20/100)
+        data[uid]["doubloons"] += data[victimid]["doubloons"] * (20/100)
+        writedata(data)
+        return await interaction.response.send_message(f"Success! You plundered <@{victimid}> for {data[victimid]["doubloons"] * (20/100)} doubloons!")
+    
+    loss = data[uid]["doubloons"] * (random.randint(1,15) / 100)
+    data[uid]["doubloons"] -= loss
+    writedata(data)
+
+    await interaction.response.send_message(f"Shucks! You got caught and lost {loss} doubloons!")
+    
+@bot.tree.command(name="shop", description="Buy some items!")
+async def shop(interaction: discord.Interaction):
+    shopembed = discord.Embed(title="Super awesome Shop!")
+    items = getitems()
+    for i in items:
+        shopembed.add_field(name=f"{i} ({items[i]["price"]}<:doubloon:1323064445370368182>)", value=items[i]["description"])
+    await interaction.response.send_message(embed=shopembed, ephemeral=True)
+
+@bot.tree.command(name="inventory", description="View all your items!")
+async def inventory(interaction: discord.Interaction):
+    data = readdata()
+    desc = ""
+    uid = str(interaction.user.id)
+    used = []
+
+    for i in data[uid]["inventory"]:
+        if i not in used:
+            used.append(i)
+            desc += f"{i}: {data[uid]["inventory"].count(i)}x \n\n"
+    await interaction.response.send_message(embed=discord.Embed(title="Yer Inventory", description=desc))
+
+
+@bot.tree.command(name="purchase")
+async def purchase(interaction: discord.Interaction, item: str):
+    items = getitems()
+    data = readdata()
+    uid = str(interaction.user.id)
+    if item not in items:
+        return await interaction.response.send_message("This Item does not exist!", ephemeral=True)
+    if data[uid]["doubloons"] >= items[item]["price"]:
+        data[uid]["doubloons"] -= items[item]["price"]
+        data[uid]["inventory"].append(item) 
+        writedata(data)
+        return await interaction.response.send_message(f"Bought {item} for {items[item]["price"]}<:doubloon:1323064445370368182>!", ephemeral=True)
+    await interaction.response.send_message("You don't have enough doubloons!", ephemeral=True)
+
+@purchase.autocomplete("item")
+async def autoitem(
+    interaction: discord.Interaction,
+    item: str,
+) -> list[app_commands.Choice[str]]:
+    items = [i for i in getitems()]
+    return [
+        app_commands.Choice(name=item, value=item)
+        for item in items
+    ]
+
+class MyView(discord.ui.View):
+    def __init__(self, clicked_buttons=None, correctbtns=None):
+        super().__init__()
+        self.clicked_buttons = clicked_buttons or []
+        self.correctbtns = correctbtns or [str(random.randint(1, 25)) for i in range(15)]
+        for i in range(1, 26):
+            label = "🏴‍☠️" if str(i) not in self.correctbtns and str(i) in self.clicked_buttons else "💰" if str(i) in self.correctbtns and str(i) in self.clicked_buttons else "‎ "
+            btn = discord.ui.Button(label=label, style=discord.ButtonStyle.gray, custom_id=str(i))
+            btn.disabled = str(i) in self.clicked_buttons
+            btn.callback = self.button_callback
+            self.add_item(btn)
+
+    async def button_callback(self, interaction: discord.Interaction):
+        button_id = interaction.data['custom_id']
+         
+        if button_id not in self.clicked_buttons:
+            self.clicked_buttons.append(button_id)
+        if len(self.clicked_buttons) >= 12:
+            corrects = len([i for i in self.clicked_buttons if i in self.correctbtns])
+            self.clicked_buttons = [str(i) for i in range(1,26)]
+            view = MyView(clicked_buttons=self.clicked_buttons, correctbtns=self.correctbtns)
+            data = readdata()
+            data[str(interaction.user.id)]["doubloons"] += corrects*100
+            writedata(data)
+            await interaction.response.edit_message(view=view, content=f"You got {corrects*100} doubloons!")
+        view = MyView(clicked_buttons=self.clicked_buttons, correctbtns=self.correctbtns)
+        await interaction.response.edit_message(view=view, content=f"{12-len(self.clicked_buttons)} guess(es) left!")
+
+
+
+@bot.event
+async def on_interaction(interaction: discord.Interaction):
+    if interaction.type == discord.InteractionType.component:
+        view = MyView()
+        await view.button_callback(interaction)
+
+@bot.tree.command(name="use")
+async def use(interaction: discord.Interaction, item: str):
+    data = readdata()
+    uid = str(interaction.user.id)
+    if item not in data[uid]["inventory"]:
+        return await interaction.response.send_message("You don't own that item!")
+    match item:
+        case "AntiPlunder":
+            if item in data[uid]["effects"]:
+                return await interaction.response.send_message("This effect is already active!")
+            
+            data[uid]["effects"].append(item)
+            data[uid]["inventory"].remove(item)
+            writedata(data)
+            await interaction.response.send_message(f"{item} activated!")
+
+        case "The Pirate's Blessing":
+            data[uid]["effects"].append(item)
+            data[uid]["inventory"].remove(item)
+            writedata(data)
+            await interaction.response.send_message(f"{item} applied!")
+
+        case "Treasure Map":
+            await interaction.response.send_message(view=MyView(), content="Click a field for a chance for treasure!")
+
+@use.autocomplete("item")
+async def autouse(
+    interaction: discord.Interaction,
+    item: str,
+) -> list[app_commands.Choice[str]]:
+    used = []
+    items = [used.append(f"{i}: {readdata()[str(interaction.user.id)]["inventory"].count(i)}x") for i in readdata()[str(interaction.user.id)]["inventory"] if f"{i}: {readdata()[str(interaction.user.id)]["inventory"].count(i)}x" not in used]
+    
+    return [
+        app_commands.Choice(name=item, value=item.split(":")[0])
+        for item in used
+    ]
+
 
 
 @bot.event

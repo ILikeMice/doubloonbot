@@ -1,0 +1,14 @@
+{
+    "AntiPlunder": {
+        "price": 100,
+        "description": "Protect yourself from foes with this super innovative device! (one-time use only!)"
+    },
+    "The Pirate's Blessing": {
+        "price": 300,
+        "description": "Get a 20% increase on yer next treasure! (Begging isn't pirate-y, the Blessing doesn't apply to it) (stacks!)"
+    },
+    "Treasure Map": {
+        "price": 500,
+        "description": "Use this map to go on a bountiful treasure hunt!"
+    }
+}
