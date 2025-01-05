@@ -172,8 +172,18 @@ async def plunder(interaction: discord.Interaction, user: discord.User):
     
     if success in range(1,15):
         data[victimid]["doubloos"] -= data[victimid]["doubloons"] * (20/100)
-        data[uid]["doubloons"] += data[victimid]["doubloons"] * (20/100)
+        multiplier = 1
+
+        if "The Pirate's Blessing" in data[uid]["effects"]:
+            blesscount = data[uid]["effects"].count("The Pirate's Blessing")
+            
+            for i in range(blesscount-1):
+                data[uid]["effects"].remove("The Pirate's Blessing")
+                multiplier = multiplier*(20/100)
+        data[uid]["doubloons"] += data[victimid]["doubloons"] * (20/100) * multiplier
         writedata(data)
+        if multiplier > 1:
+            return await interaction.response.send_message(f"Success! You plundered <@{victimid}> for {data[victimid]["doubloons"] * (20/100) * multiplier} doubloons! The Pirate's Blessing gave you a multiplier of {multiplier}!")
         return await interaction.response.send_message(f"Success! You plundered <@{victimid}> for {data[victimid]["doubloons"] * (20/100)} doubloons!")
     
     loss = data[uid]["doubloons"] * (random.randint(1,15) / 100)
