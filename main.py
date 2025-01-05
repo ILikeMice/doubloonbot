@@ -177,7 +177,7 @@ async def plunder(interaction: discord.Interaction, user: discord.User):
         if "The Pirate's Blessing" in data[uid]["effects"]:
             blesscount = data[uid]["effects"].count("The Pirate's Blessing")
             
-            for i in range(blesscount-1):
+            while "The Pirate's Blessing" in data[uid]["effects"]:
                 data[uid]["effects"].remove("The Pirate's Blessing")
                 multiplier = multiplier*(20/100)
         data[uid]["doubloons"] += data[victimid]["doubloons"] * (20/100) * multiplier
