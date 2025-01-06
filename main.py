@@ -33,6 +33,9 @@ def register(uid):
         data[uid] = {}
         data[uid]["doubloons"] = 0
         data[uid]["bank"] = 0
+        data[uid]["inventory"] = []
+        data[uid]["effects"] = []
+        data[uid]["ship"] = {}
         writedata(data)
 
 @bot.tree.command(name="pay", description="Pay someone!")
@@ -96,7 +99,7 @@ async def balance(interaction: discord.Interaction, user: str = None):
     register(uid)
     data = readdata()
 
-    embed = discord.Embed(description=f"### <@{uid}> 's balance \n Bank: {data[uid]["bank"]}<:doubloon:1323064445370368182> \n Pocket: {data[uid]["doubloons"]}<:doubloon:1323064445370368182> \n Net Worth: {data[uid]["doubloons"] + data[uid]["bank"]}<:doubloon:1323064445370368182>")
+    embed = discord.Embed(description=f"### <@{uid}> 's balance \n Bank: {round(data[uid]["bank"])}<:doubloon:1323064445370368182> \n Pocket: {round(data[uid]["doubloons"])}<:doubloon:1323064445370368182> \n Net Worth: {round(data[uid]["doubloons"] + data[uid]["bank"])}<:doubloon:1323064445370368182>")
     await interaction.response.send_message(embed=embed, ephemeral=True)  
 
 @bot.tree.command(name="beg", description="Beg for doubloons!")
@@ -163,34 +166,36 @@ async def plunder(interaction: discord.Interaction, user: discord.User):
     victimid = str(user.id)          
     success = random.randint(1,100)
     data = readdata()
+    print(data[victimid]["effects"])
     if "AntiPlunder" in data[victimid]["effects"]:
-        loss = data[uid]["doubloons"] * (random.randint(1,15) / 100)
+        loss = round(data[uid]["doubloons"] * random.randint(1,15) / 100)
         data[uid]["doubloons"] -= loss
+        data[victimid]["effects"].remove("AntiPlunder")
         writedata(data)
 
         return await interaction.response.send_message(f"Blimeys! <@{victimid}> had AntiPlunder™ active and you lost {loss} doubloons!")
     
     if success in range(1,15):
-        data[victimid]["doubloos"] -= data[victimid]["doubloons"] * (20/100)
-        multiplier = 1
+        data[victimid]["doubloons"] -= round(data[victimid]["doubloons"] * (random.randint(1,20)/100))
+        multiplier = 1.0
 
         if "The Pirate's Blessing" in data[uid]["effects"]:
             blesscount = data[uid]["effects"].count("The Pirate's Blessing")
             
             while "The Pirate's Blessing" in data[uid]["effects"]:
                 data[uid]["effects"].remove("The Pirate's Blessing")
-                multiplier = multiplier*(20/100)
-        data[uid]["doubloons"] += data[victimid]["doubloons"] * (20/100) * multiplier
+                multiplier = multiplier*(120/100)
+        data[uid]["doubloons"] += round(data[victimid]["doubloons"] * (random.randint(1,20)/100) * multiplier)
         writedata(data)
         if multiplier > 1:
-            return await interaction.response.send_message(f"Success! You plundered <@{victimid}> for {data[victimid]["doubloons"] * (20/100) * multiplier} doubloons! The Pirate's Blessing gave you a multiplier of {multiplier}!")
-        return await interaction.response.send_message(f"Success! You plundered <@{victimid}> for {data[victimid]["doubloons"] * (20/100)} doubloons!")
+            return await interaction.response.send_message(f"Success! You plundered <@{victimid}> for {round(data[victimid]["doubloons"] * (random.randint(1,20)/100) * multiplier)} doubloons! The Pirate's Blessing gave you a multiplier of {multiplier}!")
+        return await interaction.response.send_message(f"Success! You plundered <@{victimid}> for {round(data[victimid]["doubloons"] * (random.randint(1,20)/100))} doubloons!")
     
     loss = data[uid]["doubloons"] * (random.randint(1,15) / 100)
-    data[uid]["doubloons"] -= loss
+    data[uid]["doubloons"] -= round(loss)
     writedata(data)
 
-    await interaction.response.send_message(f"Shucks! You got caught and lost {loss} doubloons!")
+    await interaction.response.send_message(f"Shucks! You got caught and lost {round(loss)} doubloons!")
     
 @bot.tree.command(name="shop", description="Buy some items!")
 async def shop(interaction: discord.Interaction):
@@ -239,7 +244,7 @@ async def autoitem(
         for item in items
     ]
 
-class MyView(discord.ui.View):
+class MyView(discord.ui.View): # got some help from copilot here bc i was stuck for about an hour and didnt find any way to make this efficiently
     def __init__(self, clicked_buttons=None, correctbtns=None):
         super().__init__()
         self.clicked_buttons = clicked_buttons or []
@@ -298,6 +303,9 @@ async def use(interaction: discord.Interaction, item: str):
             await interaction.response.send_message(f"{item} applied!")
 
         case "Treasure Map":
+            data[uid]["effects"].append(item)
+            data[uid]["inventory"].remove(item)
+            writedata(data)
             await interaction.response.send_message(view=MyView(), content="Click a field for a chance for treasure!")
 
 @use.autocomplete("item")

@@ -1,5 +1,19 @@
 {
    "771786441617047582": {
+      "doubloons": 46049.834370000004,
+      "bank": 3.5,
+      "inventory": [
+         "Treasure Map",
+         "AntiPlunder",
+         "AntiPlunder",
+         "The Pirate's Blessing",
+         "Treasure Map",
+         "Treasure Map",
+         "Treasure Map"
+      ],
+      "effects": []
+   },
+   "1059231914378149958": {
       "doubloons": 96894.0,
       "bank": 3.5,
       "inventory": [
