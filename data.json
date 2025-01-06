@@ -1,6 +1,6 @@
 {
    "771786441617047582": {
-      "doubloons": 73688.761154,
+      "doubloons": 72185.761154,
       "bank": 3.5,
       "inventory": [
          "AntiPlunder",
@@ -23,7 +23,11 @@
          "The Pirate's Blessing",
          "The Pirate's Blessing",
          "The Pirate's Blessing"
-      ]
+      ],
+      "ship": {
+         "speed": 1,
+         "reward": 1
+      }
    },
    "1059231914378149958": {
       "doubloons": 96894.0,

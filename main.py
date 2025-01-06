@@ -307,8 +307,11 @@ async def effects(interaction: discord.Interaction):
 @bot.event
 async def on_interaction(interaction: discord.Interaction):
     if interaction.type == discord.InteractionType.component:
-        view = MyView()
-        await view.button_callback(interaction)
+        if interaction.data["custom_id"].startswith("ship"):
+            view = shipview()
+        else:
+            view = MyView()
+            await view.button_callback(interaction)
 
 @bot.tree.command(name="use")
 async def use(interaction: discord.Interaction, item: str):
@@ -350,14 +353,57 @@ async def autouse(
         for item in used
     ]
 
+class shipview(discord.ui.View):
+    @discord.ui.button(label="Upgrade Speed", style=discord.ButtonStyle.green, custom_id="shipspeed")
+    async def speedbtn(self,interaction: discord.Interaction,  button: discord.ui.Button):
+        data = readdata()
+        uid = str(interaction.user.id)
+        shipspeed = data[uid]["ship"]["speed"]
+        speedprice = 150 * ((102/100) ** shipspeed)
+        print(data[uid])
+        if data[uid]["doubloons"] < speedprice:
+            return await interaction.response.send_message("You don't have enough doubloons!", ephemeral=True)
+        
+        data[uid]["doubloons"] -= speedprice
+        data[uid]["ship"]["speed"] += 1
+        writedata(data)
+        await interaction.response.send_message("Successfully upgraded ship speed!")
+
+    @discord.ui.button(label="Upgrade reward", style=discord.ButtonStyle.green, custom_id="shipreward")
+    async def rewardbtn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        data = readdata()
+        uid = str(interaction.user.id)
+        shipreward = data[uid]["ship"]["speed"]
+        rewardprice = 150 * ((102/100) ** shipreward)
+
+        if data[uid]["doubloons"] < rewardprice:
+            return await interaction.response.send_message("You don't have enough doubloons!", ephemeral=True)
+        
+        data[uid]["doubloons"] -= rewardprice
+        data[uid]["ship"]["reward"] += 1
+        writedata(data)
+        await interaction.response.send_message("Reward upgraded!")
+
 
 
 @bot.tree.command(name="ship", description="View your ships' stats!")
 async def ship(interaction: discord.Interaction):
     # upgrade: +1% to stat, 2% to price
-    
-    shipembed = discord.Embed(title="Ship stats!", description="Speed: {shipspeed} \n Estimated sail reward: {shipreward}")
+    data = readdata()
+    uid = str(interaction.user.id)
+    shipdata = data[uid]["ship"]
 
+    shipspeed = shipdata["speed"]
+    speedprice = 150 * ((102/100) ** shipspeed)
+    speedtime =f"{15 - shipspeed}min"
+
+    shiprewardlvl = shipdata["reward"]
+    rewardprice = 150  * ((102/100) ** shiprewardlvl)
+    shipreward = 300 * ((101/100) ** shiprewardlvl)
+
+    shipembed = discord.Embed(title="Ship stats!", description=f"Speed: {shipspeed} \n Estimated sail reward: {shipreward}")
+
+    await interaction.response.send_message(embed=shipembed, view=shipview(), ephemeral=True)
 
 @bot.event
 async def on_ready():
