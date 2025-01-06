@@ -111,7 +111,7 @@ async def beg(interaction: discord.Interaction):
     writedata(data)
     await interaction.response.send_message(f"You got {amount}<:doubloon:1323064445370368182>!", ephemeral=True)
 
-@beg .error
+@beg.error
 async def begerror(interaction: discord.Interaction, error: app_commands.AppCommandError):
     if isinstance(error, app_commands.CommandOnCooldown):
         await interaction.response.send_message(str(error), ephemeral=True)
@@ -160,7 +160,8 @@ async def guess(interaction: discord.Interaction, number: int, amount: float):
     writedata(data)
     await interaction.response.send_message(f"You lost! Correct number was {correctnum}!", ephemeral=True)
     
-@bot.tree.command(name="plunder", description="Plunder another pirates doubloons!")
+@bot.tree.command(name="plunder", description="Plunder another pirates' doubloons!")
+@discord.app_commands.checks.cooldown(1, 300)
 async def plunder(interaction: discord.Interaction, user: discord.User):    
     uid = str(interaction.user.id)
     victimid = str(user.id)          
@@ -196,7 +197,13 @@ async def plunder(interaction: discord.Interaction, user: discord.User):
     writedata(data)
 
     await interaction.response.send_message(f"Shucks! You got caught and lost {round(loss)} doubloons!")
-    
+
+@plunder.error
+async def plunderror(interaction: discord.Interaction, error: app_commands.AppCommandError):
+    if isinstance(error, app_commands.CommandOnCooldown):
+        await interaction.response.send_message(str(error), ephemeral=True)
+
+
 @bot.tree.command(name="shop", description="Buy some items!")
 async def shop(interaction: discord.Interaction):
     shopembed = discord.Embed(title="Super awesome Shop!")
@@ -266,11 +273,34 @@ class MyView(discord.ui.View): # got some help from copilot here bc i was stuck 
             self.clicked_buttons = [str(i) for i in range(1,26)]
             view = MyView(clicked_buttons=self.clicked_buttons, correctbtns=self.correctbtns)
             data = readdata()
-            data[str(interaction.user.id)]["doubloons"] += corrects*100
+            multiplier = 1
+            while "The Pirate's Blessing" in data[str(interaction.user.id)]["effects"]:
+                multiplier = multiplier*(120/100)
+                data[str(interaction.user.id)]["effects"].remove("The Pirate's Blessing")
+            prize = round(corrects*100*multiplier)
+            data[str(interaction.user.id)]["doubloons"] += prize
             writedata(data)
-            await interaction.response.edit_message(view=view, content=f"You got {corrects*100} doubloons!")
+            if multiplier > 1:
+                await interaction.response.send_message(view=view, content=f"You got {prize} doubloons! The Pirate's Blessing gave you a multiplier of {round(multiplier)}!")
+            else:
+                await interaction.response.edit_message(view=view, content=f"You got {corrects*100} doubloons!")
         view = MyView(clicked_buttons=self.clicked_buttons, correctbtns=self.correctbtns)
         await interaction.response.edit_message(view=view, content=f"{12-len(self.clicked_buttons)} guess(es) left!")
+
+@bot.tree.command(name="effects", description="View your active effects!")
+async def effects(interaction: discord.Interaction):
+    data=readdata()
+    if len(data[str(interaction.user.id)]["effects"]) == 0:
+        return await interaction.response.send_message("You don't have any active effects! Buy them with /shop or use them with /use!", ephemeral=True)
+    used = []
+    desk = "" # haha get it
+    for i in data[str(interaction.user.id)]["effects"]:
+        if i not in used:
+            desk += f"{i}: {data[str(interaction.user.id)]["effects"].count(i)}x \n"
+            used.append(i)
+    
+    effectembed = discord.Embed(title="Yer effects!", description=desk)
+    await interaction.response.send_message(embed=effectembed, ephemeral=True)
 
 
 
@@ -303,7 +333,6 @@ async def use(interaction: discord.Interaction, item: str):
             await interaction.response.send_message(f"{item} applied!")
 
         case "Treasure Map":
-            data[uid]["effects"].append(item)
             data[uid]["inventory"].remove(item)
             writedata(data)
             await interaction.response.send_message(view=MyView(), content="Click a field for a chance for treasure!")
@@ -321,6 +350,13 @@ async def autouse(
         for item in used
     ]
 
+
+
+@bot.tree.command(name="ship", description="View your ships' stats!")
+async def ship(interaction: discord.Interaction):
+    # upgrade: +1% to stat, 2% to price
+    
+    shipembed = discord.Embed(title="Ship stats!", description="Speed: {shipspeed} \n Estimated sail reward: {shipreward}")
 
 
 @bot.event

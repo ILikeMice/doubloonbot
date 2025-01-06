@@ -1,17 +1,29 @@
 {
    "771786441617047582": {
-      "doubloons": 46049.834370000004,
+      "doubloons": 73688.761154,
       "bank": 3.5,
       "inventory": [
-         "Treasure Map",
+         "AntiPlunder",
+         "AntiPlunder"
+      ],
+      "effects": [
          "AntiPlunder",
          "AntiPlunder",
          "The Pirate's Blessing",
-         "Treasure Map",
-         "Treasure Map",
-         "Treasure Map"
-      ],
-      "effects": []
+         "The Pirate's Blessing",
+         "The Pirate's Blessing",
+         "The Pirate's Blessing",
+         "The Pirate's Blessing",
+         "The Pirate's Blessing",
+         "The Pirate's Blessing",
+         "The Pirate's Blessing",
+         "The Pirate's Blessing",
+         "The Pirate's Blessing",
+         "The Pirate's Blessing",
+         "The Pirate's Blessing",
+         "The Pirate's Blessing",
+         "The Pirate's Blessing"
+      ]
    },
    "1059231914378149958": {
       "doubloons": 96894.0,
