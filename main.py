@@ -6,6 +6,7 @@ import os
 import dotenv
 import random
 import math
+import time
 
 dotenv.load_dotenv()
 
@@ -309,6 +310,9 @@ async def on_interaction(interaction: discord.Interaction):
     if interaction.type == discord.InteractionType.component:
         if interaction.data["custom_id"].startswith("ship"):
             view = shipview()
+        elif interaction.data["custom_id"].startswith("sail"):
+            view = sailview()
+
         else:
             view = MyView()
             await view.button_callback(interaction)
@@ -424,18 +428,83 @@ async def ship(interaction: discord.Interaction):
 
     await interaction.response.send_message(embed=shipembed, view=shipview(), ephemeral=True)
 
+class sailview(discord.ui.View):
+    @discord.ui.button(label="Set sail!", style=discord.ButtonStyle.green, custom_id="sailbtn")
+    async def sailbtn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        uid = str(interaction.user.id)
+        data = readdata()
+
+        speedlvl = data[uid]["ship"]["speed"]
+        rewardlvl = data[uid]["ship"]["reward"]
+
+        currtime = time.time()
+    
+        available = currtime - data[uid]["ship"]["sail"] > (15 - speedlvl) * 60
+        print(available)
+        if not available:
+            return await interaction.response.send_message("Ship is sailing, try again later!", ephemeral=True)
+        
+        data[uid]["ship"]["sail"] = currtime
+        data[uid]["ship"]["claim"] = round(300 * ((101/100) ** rewardlvl) * ((100 + random.randint(-10,10))/100))
+        writedata(data)
+
+        data = readdata()
+        available = round(currtime * 1000) - ((15-speedlvl)*60000) > data[uid]["ship"]["sail"] 
+
+        time_left = max(0, round((data[uid]["ship"]["sail"] + (15-speedlvl)*60 - currtime) / 60))
+
+        await interaction.response.edit_message(embed=discord.Embed(title="Sail!", description=f"**Status:** {'**Ready**' if available else '**Sailing...**'} \n **Time Left:** {time_left} mins \n **Estimated sail reward:** {round(300 * ((101/100) ** rewardlvl))}<:doubloon:1323064445370368182>"))
+
+    @discord.ui.button(label="Claim Sail reward!", style=discord.ButtonStyle.green, custom_id="sailclaim")
+    async def claimsail(self, interaction: discord.Interaction, button: discord.ui.Button):
+        uid = str(interaction.user.id)
+        data = readdata()
+
+        speedlvl = data[uid]["ship"]["speed"]
+    
+        currtime = time.time()
+
+        available = currtime - data[uid]["ship"]["sail"] > (15 - speedlvl) * 60
+        print(available)
+        if not available:
+            return await interaction.response.send_message("Ship is sailing, try again later!", ephemeral=True)
+
+        if data[uid]["ship"]["claim"] == 0:
+            return await interaction.response.send_message("There is nothing to claim!", ephemeral=True)
+        
+        reward = data[uid]["ship"]["claim"]
+
+        while "The Pirate's Blessing" in data[uid]["effects"]:
+            data[uid]["effects"].remove("The Pirate's Blessing")
+            reward = reward * (120/100)
+
+        data[uid]["doubloons"] += reward
+        data[uid]["ship"]["claim"] = 0
+
+        writedata(data)
+
+        await interaction.response.send_message(f"Claimed {reward}<:doubloon:1323064445370368182>!", ephemeral=True)
+
 @bot.tree.command(name="sail", description="Set your ship to sail!")
 async def sail(interaction: discord.Interaction):
     uid = str(interaction.user.id)
     data = readdata()
 
+    sailembed = discord.Embed() 
     speedlvl = data[uid]["ship"]["speed"]
     rewardlvl = data[uid]["ship"]["reward"]
+    
+    currtime = time.time()
 
-    available = data[uid]["ship"]["sail"] == 0
+    available = round(currtime * 1000) - ((15-speedlvl)*60000) > data[uid]["ship"]["sail"] 
 
-    sailembed = discord.Embed()
+    time_left = max(0, round((data[uid]["ship"]["sail"] + (15-speedlvl)*60 - currtime) / 60))
 
+    sailembed.title = "Sail!"
+    sailembed.description = f"**Status:** {'**Ready**' if available else '**Sailing...**'} \n **Time Left:** {time_left} mins \n **Estimated sail reward:** {round(300 * ((101/100) ** rewardlvl))}<:doubloon:1323064445370368182>"
+
+    await interaction.response.send_message(view=sailview(), embed=sailembed)
+    
 
 @bot.event
 async def on_ready():
