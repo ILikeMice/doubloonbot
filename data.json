@@ -1,6 +1,6 @@
 {
    "771786441617047582": {
-      "doubloons": 72185.761154,
+      "doubloons": 64464.15513,
       "bank": 3.5,
       "inventory": [
          "AntiPlunder",
@@ -25,47 +25,9 @@
          "The Pirate's Blessing"
       ],
       "ship": {
-         "speed": 1,
-         "reward": 1
+         "speed": 13,
+         "reward": 29,
+         "sail": 0
       }
-   },
-   "1059231914378149958": {
-      "doubloons": 96894.0,
-      "bank": 3.5,
-      "inventory": [
-         "Treasure Map",
-         "AntiPlunder",
-         "AntiPlunder",
-         "The Pirate's Blessing",
-         "Treasure Map",
-         "Treasure Map",
-         "Treasure Map"
-      ],
-      "effects": []
-   },
-   "1147591479712284683": {
-      "doubloons": 3,
-      "bank": 0,
-      "inventory": []
-   },
-   "1251851207639826455": {
-      "doubloons": 2.5,
-      "bank": 1.0,
-      "inventory": []
-   },
-   "1323063181064667247": {
-      "doubloons": 4.0,
-      "bank": 2.5,
-      "inventory": []
-   },
-   "1248299148248354817": {
-      "doubloons": 0.5,
-      "bank": 5.0,
-      "inventory": []
-   },
-   "1143206043833352354": {
-      "doubloons": 3.5,
-      "bank": 1.5,
-      "inventory": []
    }
 }

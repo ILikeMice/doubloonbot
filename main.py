@@ -359,7 +359,11 @@ class shipview(discord.ui.View):
         data = readdata()
         uid = str(interaction.user.id)
         shipspeed = data[uid]["ship"]["speed"]
-        speedprice = 150 * ((102/100) ** shipspeed)
+        speedprice = round(150 * ((102/100) ** shipspeed))
+        
+        shipreward = data[uid]["ship"]["reward"]
+        rewardprice = round(150 * ((102/100) ** shipreward))
+
         print(data[uid])
         if data[uid]["doubloons"] < speedprice:
             return await interaction.response.send_message("You don't have enough doubloons!", ephemeral=True)
@@ -367,14 +371,20 @@ class shipview(discord.ui.View):
         data[uid]["doubloons"] -= speedprice
         data[uid]["ship"]["speed"] += 1
         writedata(data)
-        await interaction.response.send_message("Successfully upgraded ship speed!")
+        
+        speedtime = f"{15-(shipspeed+1)}min"
+        speedprice = round(150 * ((102/100) ** (shipspeed+1)))
+
+        shipembed = discord.Embed(title="Ship stats!", description=f"Speed: {shipspeed+1}, {speedtime} ({speedprice}<:doubloon:1323064445370368182>) \n Estimated sail reward: {round(300 * ((101/100) ** (shipreward)))} ({rewardprice}<:doubloon:1323064445370368182>)")
+
+        await interaction.response.edit_message(embed=shipembed, view=shipview())
 
     @discord.ui.button(label="Upgrade reward", style=discord.ButtonStyle.green, custom_id="shipreward")
     async def rewardbtn(self, interaction: discord.Interaction, button: discord.ui.Button):
         data = readdata()
         uid = str(interaction.user.id)
-        shipreward = data[uid]["ship"]["speed"]
-        rewardprice = 150 * ((102/100) ** shipreward)
+        shipreward = data[uid]["ship"]["reward"]
+        rewardprice = round(150 * ((102/100) ** shipreward))
 
         if data[uid]["doubloons"] < rewardprice:
             return await interaction.response.send_message("You don't have enough doubloons!", ephemeral=True)
@@ -382,7 +392,16 @@ class shipview(discord.ui.View):
         data[uid]["doubloons"] -= rewardprice
         data[uid]["ship"]["reward"] += 1
         writedata(data)
-        await interaction.response.send_message("Reward upgraded!")
+        
+        rewardprice = round(150 * ((102/100) ** (shipreward+1)))
+        
+        shipspeed = data[uid]["ship"]["speed"]
+        speedprice = round(150 * ((102/100) ** shipspeed))
+        speedtime = f"{15-shipspeed}min"
+
+        shipembed = discord.Embed(title="Ship stats!", description=f"Speed: {shipspeed}, {speedtime} ({speedprice}<:doubloon:1323064445370368182>) \n Estimated sail reward: {round(300 * ((101/100) ** (shipreward+1)))} ({rewardprice}<:doubloon:1323064445370368182>)")
+
+        await interaction.response.edit_message(embed=shipembed, view=shipview())
 
 
 
@@ -394,16 +413,29 @@ async def ship(interaction: discord.Interaction):
     shipdata = data[uid]["ship"]
 
     shipspeed = shipdata["speed"]
-    speedprice = 150 * ((102/100) ** shipspeed)
+    speedprice = round(150 * ((102/100) ** shipspeed))
     speedtime =f"{15 - shipspeed}min"
 
     shiprewardlvl = shipdata["reward"]
-    rewardprice = 150  * ((102/100) ** shiprewardlvl)
-    shipreward = 300 * ((101/100) ** shiprewardlvl)
+    rewardprice = round(150  * ((102/100) ** shiprewardlvl))
+    shipreward = round(300 * ((101/100) ** shiprewardlvl))
 
-    shipembed = discord.Embed(title="Ship stats!", description=f"Speed: {shipspeed} \n Estimated sail reward: {shipreward}")
+    shipembed = discord.Embed(title="Ship stats!", description=f"Speed: {shipspeed}, {speedtime} ({speedprice}<:doubloon:1323064445370368182>) \n Estimated sail reward: {shipreward} ({rewardprice}<:doubloon:1323064445370368182>)")
 
     await interaction.response.send_message(embed=shipembed, view=shipview(), ephemeral=True)
+
+@bot.tree.command(name="sail", description="Set your ship to sail!")
+async def sail(interaction: discord.Interaction):
+    uid = str(interaction.user.id)
+    data = readdata()
+
+    speedlvl = data[uid]["ship"]["speed"]
+    rewardlvl = data[uid]["ship"]["reward"]
+
+    available = data[uid]["ship"]["sail"] == 0
+
+    sailembed = discord.Embed()
+
 
 @bot.event
 async def on_ready():
