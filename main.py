@@ -30,20 +30,26 @@ def writedata(data):
 
 def register(uid):
     data = readdata()
+    print(data)
     if not uid in data:
         data[uid] = {}
         data[uid]["doubloons"] = 0
         data[uid]["bank"] = 0
         data[uid]["inventory"] = []
         data[uid]["effects"] = []
-        data[uid]["ship"] = {}
+        data[uid]["ship"] = {
+            "speed": 0,
+            "reward": 0,
+            "sail": 0,
+            "claim": 0
+        }
         writedata(data)
 
 @bot.tree.command(name="pay", description="Pay someone!")
-async def pay(interaction: discord.Interaction, user: str, amount: int):
+async def pay(interaction: discord.Interaction, user: str, amount: float):
     data = readdata()
     user1id = str(interaction.user.id)
-    user2id = user.replace(">","").replace("@","").replace("<","")
+    user2id = str(user.replace(">","").replace("@","").replace("<",""))
 
     register(user1id)
     register(user2id)
@@ -55,10 +61,11 @@ async def pay(interaction: discord.Interaction, user: str, amount: int):
         return await interaction.response.send_message(f"Paid user {user} {amount} doubloons!", ephemeral=True)
 
 
-    await interaction.response.send_message("You don't have enough doubloons!")
+    await interaction.response.send_message("You don't have enough doubloons!", ephemeral=True)
 
 @bot.tree.command(name="deposit", description="Deposit your doubloons into a safe bank!")
 async def deposit(interaction: discord.Interaction, amount: float):
+    register(str(interaction.user.id))
     uid = str(interaction.user.id)
     data = readdata()
 
@@ -76,6 +83,7 @@ async def deposit(interaction: discord.Interaction, amount: float):
 
 @bot.tree.command(name="withdraw", description="Withdraw doubloons from your bank!")
 async def withdraw(interaction: discord.Interaction, amount: float):
+    register(str(interaction.user.id))
     uid = str(interaction.user.id)
     data = readdata()
 
@@ -93,22 +101,25 @@ async def withdraw(interaction: discord.Interaction, amount: float):
     user="The User whose balance you wish to see, leave empty to get your balance."
 )
 async def balance(interaction: discord.Interaction, user: str = None):
+    register(str(interaction.user.id))
     if user:
         uid = user.replace(">","").replace("@","").replace("<","")
     else:
         uid = str(interaction.user.id)
-    register(uid)
+        
     data = readdata()
 
-    embed = discord.Embed(description=f"### <@{uid}> 's balance \n Bank: {round(data[uid]["bank"])}<:doubloon:1323064445370368182> \n Pocket: {round(data[uid]["doubloons"])}<:doubloon:1323064445370368182> \n Net Worth: {round(data[uid]["doubloons"] + data[uid]["bank"])}<:doubloon:1323064445370368182>")
+    embed = discord.Embed(description=f"### <@{uid}> 's balance \n Bank: {round((data[uid]["bank"]),2)}<:doubloon:1323064445370368182> \n Pocket: {round((data[uid]["doubloons"]),2)}<:doubloon:1323064445370368182> \n Net Worth: {round((data[uid]["doubloons"] + data[uid]["bank"]),2)}<:doubloon:1323064445370368182>")
     await interaction.response.send_message(embed=embed, ephemeral=True)  
 
 @bot.tree.command(name="beg", description="Beg for doubloons!")
 @discord.app_commands.checks.cooldown(1, 300)
 async def beg(interaction: discord.Interaction):
+    register(str(interaction.user.id))
+    
     amount = float(random.randint(0,100))/10
     data = readdata()
-    data[str(interaction.user.id)]["doubloons"] += amount
+    data[str(interaction.user.id)]["doubloons"] += round(amount,2)
     writedata(data)
     await interaction.response.send_message(f"You got {amount}<:doubloon:1323064445370368182>!", ephemeral=True)
 
@@ -119,6 +130,7 @@ async def begerror(interaction: discord.Interaction, error: app_commands.AppComm
 
 @bot.tree.command(name="leaderboard", description="Show the top doubloon owners!")
 async def leaderboard(interaction: discord.Interaction, page: int):
+    register(str(interaction.user.id))
     data = readdata()
     sorteddata = sorted(data.items(), key=lambda x: x[1]["doubloons"] + x[1]["bank"], reverse=True)
     pageamnt = math.ceil(len(data)/10)
@@ -142,12 +154,13 @@ async def leaderboard(interaction: discord.Interaction, page: int):
 
 @bot.tree.command(name="guess", description="Guess a number between 1 and 10, get 10x of your bet amount!")
 async def guess(interaction: discord.Interaction, number: int, amount: float):
+    register(str(interaction.user.id))
     if number not in range(1,10):
         return await interaction.response.send_message("Number must be between 1 and 10!", ephemeral=True)
     correctnum = random.randint(1,10)
     data = readdata()
     uid = str(interaction.user.id)
-
+    
     if data[uid]["doubloons"] < amount:
         return await interaction.response.send_message("You don't have enough doubloons!", ephemeral=True)
 
@@ -163,11 +176,13 @@ async def guess(interaction: discord.Interaction, number: int, amount: float):
     
 @bot.tree.command(name="plunder", description="Plunder another pirates' doubloons!")
 @discord.app_commands.checks.cooldown(1, 300)
-async def plunder(interaction: discord.Interaction, user: discord.User):    
+async def plunder(interaction: discord.Interaction, user: discord.User):   
+    register(str(interaction.user.id)) 
     uid = str(interaction.user.id)
     victimid = str(user.id)          
     success = random.randint(1,100)
     data = readdata()
+    
     print(data[victimid]["effects"])
     if "AntiPlunder" in data[victimid]["effects"]:
         loss = round(data[uid]["doubloons"] * random.randint(1,15) / 100)
@@ -205,8 +220,9 @@ async def plunderror(interaction: discord.Interaction, error: app_commands.AppCo
         await interaction.response.send_message(str(error), ephemeral=True)
 
 
-@bot.tree.command(name="shop", description="Buy some items!")
+@bot.tree.command(name="shop", description="View the purchaseable items!")
 async def shop(interaction: discord.Interaction):
+    register(str(interaction.user.id))
     shopembed = discord.Embed(title="Super awesome Shop!")
     items = getitems()
     for i in items:
@@ -215,11 +231,12 @@ async def shop(interaction: discord.Interaction):
 
 @bot.tree.command(name="inventory", description="View all your items!")
 async def inventory(interaction: discord.Interaction):
+    register(str(interaction.user.id))
     data = readdata()
     desc = ""
     uid = str(interaction.user.id)
     used = []
-
+    
     for i in data[uid]["inventory"]:
         if i not in used:
             used.append(i)
@@ -227,11 +244,13 @@ async def inventory(interaction: discord.Interaction):
     await interaction.response.send_message(embed=discord.Embed(title="Yer Inventory", description=desc))
 
 
-@bot.tree.command(name="purchase")
+@bot.tree.command(name="purchase", description="Purchase an item from the shop!")
 async def purchase(interaction: discord.Interaction, item: str):
+    register(str(interaction.user.id))
     items = getitems()
     data = readdata()
     uid = str(interaction.user.id)
+    
     if item not in items:
         return await interaction.response.send_message("This Item does not exist!", ephemeral=True)
     if data[uid]["doubloons"] >= items[item]["price"]:
@@ -290,7 +309,9 @@ class MyView(discord.ui.View): # got some help from copilot here bc i was stuck 
 
 @bot.tree.command(name="effects", description="View your active effects!")
 async def effects(interaction: discord.Interaction):
+    register(str(interaction.user.id))
     data=readdata()
+    
     if len(data[str(interaction.user.id)]["effects"]) == 0:
         return await interaction.response.send_message("You don't have any active effects! Buy them with /shop or use them with /use!", ephemeral=True)
     used = []
@@ -317,8 +338,9 @@ async def on_interaction(interaction: discord.Interaction):
             view = MyView()
             await view.button_callback(interaction)
 
-@bot.tree.command(name="use")
+@bot.tree.command(name="use", description="Use an item that you bought!")
 async def use(interaction: discord.Interaction, item: str):
+    register(str(interaction.user.id))
     data = readdata()
     uid = str(interaction.user.id)
     if item not in data[uid]["inventory"]:
@@ -364,7 +386,8 @@ class shipview(discord.ui.View):
         uid = str(interaction.user.id)
         shipspeed = data[uid]["ship"]["speed"]
         speedprice = round(150 * ((102/100) ** shipspeed))
-        
+        if shipspeed >= 14:
+            return await interaction.response.send_message("Your ship is already at max speed!", ephemeral=True)
         shipreward = data[uid]["ship"]["reward"]
         rewardprice = round(150 * ((102/100) ** shipreward))
 
@@ -411,7 +434,7 @@ class shipview(discord.ui.View):
 
 @bot.tree.command(name="ship", description="View your ships' stats!")
 async def ship(interaction: discord.Interaction):
-    # upgrade: +1% to stat, 2% to price
+    register(str(interaction.user.id))
     data = readdata()
     uid = str(interaction.user.id)
     shipdata = data[uid]["ship"]
@@ -487,6 +510,7 @@ class sailview(discord.ui.View):
 
 @bot.tree.command(name="sail", description="Set your ship to sail!")
 async def sail(interaction: discord.Interaction):
+    register(str(interaction.user.id))
     uid = str(interaction.user.id)
     data = readdata()
 
@@ -505,6 +529,13 @@ async def sail(interaction: discord.Interaction):
 
     await interaction.response.send_message(view=sailview(), embed=sailembed)
     
+
+@bot.tree.command(name="help", description="Get a list of all commands!")
+async def help(interaction: discord.Interaction):
+    helpembed = discord.Embed(title="Help!")
+    for i in bot.tree.get_commands():
+        helpembed.add_field(name="/" + i.name, value=i.description)
+    return await interaction.response.send_message(embed=helpembed, ephemeral=True)
 
 @bot.event
 async def on_ready():
